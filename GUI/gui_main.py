@@ -3,40 +3,21 @@ from tkinter import filedialog
 import tkinter.font as tkFont
 import matplotlib.pyplot as plt
 from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
+
 import get_frames
 
-#mono24 = tkFont.Font(family="monospace",size=24,weight="bold")
+COLUMN_1 = 0.05
+COLUMN_2 = 0.30
+COLUMN_3 = 0.55
+COLUMN_4 = 0.80
 
-class SampleApp(tk.Tk):
-    def __init__(self):
-        tk.Tk.__init__(self)
-        self._frame = None
-        self.switch_frame(Instructions)
+TOP_OFFSET = 0.06
+ROW_STEP1 = TOP_OFFSET+0.075
+ROW_STEP2 = TOP_OFFSET+0.25
+ROW_STEP3 = TOP_OFFSET+0.575
 
-    def switch_frame(self, frame_class):
-        new_frame = frame_class(self)
-        if self._frame is not None:
-            self._frame.destroy()
-        self._frame = new_frame
-        self._frame.pack()
-
-class Instructions(tk.Frame):
-    def __init__(self, master):
-        tk.Frame.__init__(self, master)
-        tk.Label(self, text="Start page", font=('Helvetica', 18, "bold")).pack(side="top", fill="x", pady=5)
-        tk.Button(self, text="Go to page one",
-                  command=lambda: master.switch_frame(UploadVideo)).pack()
-        tk.Button(self, text="Go to page two",
-                  command=lambda: master.switch_frame(muDICParameters)).pack()
-
-class UploadVideo(tk.Frame):
-    def __init__(self, master):
-        tk.Frame.__init__(self, master)
-        tk.Frame.configure(self,bg='blue')
-        tk.Label(self, text="Page one", font=('Helvetica', 18, "bold")).pack(side="top", fill="x", pady=5)
-        tk.Button(self, text="Go back to start page",
-                  command=lambda: master.switch_frame(Instructions)).pack()
-        
+class Application(tk.Frame):
+    
     def __init__(self, master=None):
         super().__init__(master)
         #self.mCan = tk.Canvas(self, height=1000, width=1000, bg='white')
@@ -45,140 +26,246 @@ class UploadVideo(tk.Frame):
         self.foldername = None
         self.master = master
         self.pack()
-        self.create_widgets()
+        self.upload_files()
+        self.choose_settings()
+        self.view_results()
+        
+    def error_popup(self,error_msg):
+        win = tk.Toplevel()
+        win.wm_title("Error Warning")
+        warning = tk.Label(win, text=error_msg,font=main_font)
+        warning.grid(row=0, column=0)
+        dismiss = tk.Button(win, text="Okay", command=win.destroy)
+        dismiss.grid(row=1, column=0)
 
     def upload(self,event=None):
         self.filename = filedialog.askopenfilename()
         if self.filename.endswith('.mp4'):
             print('File Selected: ', self.filename)
         else:
-            print('ERROR: Please upload an MP4 file.')
+            self.error_popup('ERROR: Please upload an MP4 file.')
             self.filename = ""
 
     def choose_dir(self):
         self.foldername = filedialog.askdirectory()
         print('Directory Selected: ', self.foldername)
-
-    def create_widgets(self):
-
-        self.upload_widget = tk.Button(root, text='Upload Video File', command=self.upload,
-        bg='white',fg='black',height=5,width=25)
-        self.upload_widget.pack()
-        self.upload_widget.place(relx=0.5, rely=0.2, anchor=tk.CENTER)
-
-        self.choose_dir_widget = tk.Button(root, text='Choose Output Directory', command=self.choose_dir,
-        bg='white',fg='black',height=5,width=25)
-        self.choose_dir_widget.pack()
-        self.choose_dir_widget.place(relx=0.5, rely=0.5, anchor=tk.CENTER)
-
-        self.video_to_images_widget = tk.Button(root, text='Get Image Stack', command=self.video_to_images,
-        bg='white',fg='black',height=5,width=25)
-        self.video_to_images_widget.pack()
-        self.video_to_images_widget.place(relx=0.5, rely=0.8, anchor=tk.CENTER)
-
-        self.quit = tk.Button(self, text="QUIT", fg="red",
-                              command=self.master.destroy)
-        #self.quit.pack(side="bottom")
         
     def video_to_images(self):
         if (self.filename is not None) and (self.foldername is not None):
             get_frames.mp4_frames(self.filename,self.foldername)
         else:
-            print('Please choose filename and output directory')
+            self.error_popup('ERROR: Please choose a video file and output directory.')
+     
+    ## MAKE THESE ACTUAL FUNCTIONS FOR GODS SAKE
+    def runDIC(self):
+        print('Running Digital Image Correlation')
+        
+    def display_field(self):
+        print('Displaying Field')
+        
+    def save_image(self):
+        print('Saving Image')
+
+    def save_csv(self):
+        print('Saving Output as CSV')
+        
+    def save_npy(self):
+        print('Saving Output as NPY')
+        
+    #----------WIDGETS
     
+    def upload_files(self):
+        
+        self.upload_label = tk.Label(root,text='Step 1: Upload Files and Choose Directory',font=header_font)
+        self.upload_label.pack()
+        self.upload_label.place(relx=COLUMN_1, rely=ROW_STEP1, anchor=tk.W)
 
-class muDICParameters(tk.Frame):
-    def __init__(self, master):
-        tk.Frame.__init__(self, master)
-        tk.Frame.configure(self,bg='red')
-        tk.Label(self, text="Page two", font=('Helvetica', 18, "bold")).pack(side="top", fill="x", pady=5)
-        tk.Button(self, text="Go back to start page",
-                  command=lambda: master.switch_frame(Instructions)).pack()
+        self.upload_widget = tk.Button(root, text='Upload Video File', command=self.upload,
+        bg='white',fg='black',font=main_font,height=1,width=20)
+        self.upload_widget.pack()
+        self.upload_widget.place(relx=COLUMN_1, rely=ROW_STEP1+0.05, anchor=tk.W)
 
-    def mu_DIC_params(self):
-        self.L_use_every_n = tk.Label(root,text="Use Every Nth").pack(side="left", fill="x", pady=5)
-        self.E_use_every_n = tk.Entry(root, bd =5).pack(side="right")
-        self.L_filtering = tk.Label(root,text="Filtering Method").pack(side="left", fill="x", pady=5)
-        self.E_filtering = tk.Entry(root, bd =5).pack(side="right")
+        self.choose_dir_widget = tk.Button(root, text='Choose Output Directory', command=self.choose_dir,
+        bg='white',fg='black',font=main_font,height=1,width=20)
+        self.choose_dir_widget.pack()
+        self.choose_dir_widget.place(relx=COLUMN_2, rely=ROW_STEP1+0.05, anchor=tk.W)
 
+        self.video_to_images_widget = tk.Button(root, text='Get Image Stack', command=self.video_to_images,
+        bg='white',fg='black',font=main_font,height=1,width=20)
+        self.video_to_images_widget.pack()
+        self.video_to_images_widget.place(relx=COLUMN_1, rely=ROW_STEP1+0.10, anchor=tk.W)
+
+    def choose_settings(self):
+        
+        # Label Step 2
+        self.settings_label = tk.Label(root,text='Step 2: Choose DIC Settings',font=header_font)
+        self.settings_label.pack()
+        self.settings_label.place(relx=COLUMN_1, rely=ROW_STEP2, anchor=tk.W)
+        
+        #----------IMAGE PARAMETERS
+        
+        # Choose filtering method
+        FILTERS = ["None","Highpass Gaussian","Lowpass Gaussian","Homomorphic Median"]
+        self.filter_label = tk.Label(root,text='Image Filter Type:',font=main_font)
+        self.filter_label.pack()
+        self.filter_label.place(relx=COLUMN_1, rely=ROW_STEP2+0.05, anchor=tk.W)
+        self.filter = tk.StringVar(root)
+        self.filter.set(FILTERS[0]) # default value
+        self.filters = tk.OptionMenu(root,self.filter,*FILTERS)
+        self.filters.config(font=main_font)
+        self.filters.pack()
+        self.filters.place(relx=COLUMN_2, rely=ROW_STEP2+0.05, anchor=tk.W)
+        
+        # Choose strength of filter
+        self.sigma = tk.StringVar(root)
+        self.sigma.set("1.0")
+        self.sigma_label = tk.Label(root,text='Filter Strength (Sigma):',font=main_font)
+        self.sigma_label.pack()
+        self.sigma_label.place(relx=COLUMN_1, rely=ROW_STEP2+0.10, anchor=tk.W)
+        self.sigma_entry = tk.Entry(root,textvariable=self.sigma,font=main_font)
+        self.sigma_entry.pack()
+        self.sigma_entry.place(relx=COLUMN_2, rely=ROW_STEP2+0.10, anchor=tk.W)
+
+        # Choose every nth image
+        # deal with errors - round to nearest integer, make positive
+        self.nth_image = tk.StringVar(root)
+        self.nth_image.set("10")
+        self.nth_image_label = tk.Label(root,text='Use Every Nth Image:',font=main_font)
+        self.nth_image_label.pack()
+        self.nth_image_label.place(relx=COLUMN_1, rely=ROW_STEP2+0.15, anchor=tk.W)
+        self.nth_image_entry = tk.Entry(root,textvariable=self.nth_image,font=main_font)
+        self.nth_image_entry.pack()
+        self.nth_image_entry.place(relx=COLUMN_2, rely=ROW_STEP2+0.15, anchor=tk.W)
+        
+        # Choose maximum number of images to be proccessed
+        self.maxim = tk.StringVar(root)
+        self.maxim.set("")
+        self.maxim_label = tk.Label(root,text='Maximum Images (Optional):',font=main_font)
+        self.maxim_label.pack()
+        self.maxim_label.place(relx=COLUMN_1, rely=ROW_STEP2+0.20, anchor=tk.W)
+        self.maxim_entry = tk.Entry(root,textvariable=self.maxim,font=main_font)
+        self.maxim_entry.pack()
+        self.maxim_entry.place(relx=COLUMN_2, rely=ROW_STEP2+0.20, anchor=tk.W)
+        
+        #----------CORRELATION PARAMETERS
+                
+        # Choose maximum number of iterations
+        self.maxit = tk.StringVar(root)
+        self.maxit.set("40")
+        self.maxit_label = tk.Label(root,text='Maximum Iterations:',font=main_font)
+        self.maxit_label.pack()
+        self.maxit_label.place(relx=COLUMN_3, rely=ROW_STEP2+0.05, anchor=tk.W)
+        self.maxit_entry = tk.Entry(root,textvariable=self.maxit,font=main_font)
+        self.maxit_entry.pack()
+        self.maxit_entry.place(relx=COLUMN_4, rely=ROW_STEP2+0.05, anchor=tk.W)
+
+        # Padding around mesh
+        self.padding = tk.StringVar(root)
+        self.padding.set("10")
+        self.padding_label = tk.Label(root,text='Padding Around Mesh (Pixels):',font=main_font)
+        self.padding_label.pack()
+        self.padding_label.place(relx=COLUMN_3, rely=ROW_STEP2+0.10, anchor=tk.W)
+        self.padding_entry = tk.Entry(root,textvariable=self.padding,font=main_font)
+        self.padding_entry.pack()
+        self.padding_entry.place(relx=COLUMN_4, rely=ROW_STEP2+0.10, anchor=tk.W)
+        
+        # Interpolation Polynomial Order
+        self.interp = tk.StringVar(root)
+        self.interp.set("3")
+        self.interp_label = tk.Label(root,text='Interpolation Polynomial Order: ',font=main_font)
+        self.interp_label.pack()
+        self.interp_label.place(relx=COLUMN_3, rely=ROW_STEP2+0.15, anchor=tk.W)
+        self.interp_entry = tk.Entry(root,textvariable=self.interp,font=main_font)
+        self.interp_entry.pack()
+        self.interp_entry.place(relx=COLUMN_4, rely=ROW_STEP2+0.15, anchor=tk.W)
+        
+        # No Convergence
+        NO_CONVERGENCE = ["Ignore","Update","Break"]
+        self.converge_label = tk.Label(root,text='If Convergence Fails: ',font=main_font)
+        self.converge_label.pack()
+        self.converge_label.place(relx=COLUMN_3, rely=ROW_STEP2+0.20, anchor=tk.W)
+        self.converge = tk.StringVar(root)
+        self.converge.set(NO_CONVERGENCE[0]) # default value
+        self.convergence = tk.OptionMenu(root,self.converge,*NO_CONVERGENCE)
+        self.convergence.config(font=main_font)
+        self.convergence.pack()
+        self.convergence.place(relx=COLUMN_4, rely=ROW_STEP2+0.20, anchor=tk.W)
+        
+        # Run DIC Algorithm
+        self.runDIC_widget = tk.Button(root, text='Run Digital Image Correlation', command=self.runDIC,
+        bg='white',fg='black',font=main_font,height=1,width=25)
+        self.runDIC_widget.pack()
+        self.runDIC_widget.place(relx=COLUMN_1, rely=ROW_STEP2+0.25, anchor=tk.W)
+
+    def view_results(self):
+        
+        # Label Step 3
+        self.results_label = tk.Label(root,text='Step 3: View Results',font=header_font)
+        self.results_label.pack()
+        self.results_label.place(relx=COLUMN_1, rely=ROW_STEP3, anchor=tk.W)
+ 
+        # Choose strength of filter
+        self.upscale = tk.StringVar(root)
+        self.upscale.set("10")
+        self.upscale_label = tk.Label(root,text='Upscale:',font=main_font)
+        self.upscale_label.pack()
+        self.upscale_label.place(relx=COLUMN_1, rely=ROW_STEP3+0.05, anchor=tk.W)
+        self.upscale_entry = tk.Entry(root,textvariable=self.upscale,font=main_font)
+        self.upscale_entry.pack()
+        self.upscale_entry.place(relx=COLUMN_2, rely=ROW_STEP3+0.05, anchor=tk.W)
+        
+        # Choose filtering method
+        FIELDS = ["Displacement","True Strain","Engineering Strain",
+                  "Green Strain","Residual"]
+        self.field_label = tk.Label(root,text='Choose Field:',font=main_font)
+        self.field_label.pack()
+        self.field_label.place(relx=COLUMN_1, rely=ROW_STEP3+0.10, anchor=tk.W)
+        self.field = tk.StringVar(root)
+        self.field.set(FIELDS[0]) # default value
+        self.field = tk.OptionMenu(root,self.field,*FIELDS)
+        self.field.config(font=main_font)
+        self.field.pack()
+        self.field.place(relx=COLUMN_2, rely=ROW_STEP3+0.10, anchor=tk.W)
+               
+        # View Fields
+        self.disp_field_widget = tk.Button(root, text='Display Field', command=self.display_field,
+        bg='white',fg='black',font=main_font,height=1,width=25)
+        self.disp_field_widget.pack()
+        self.disp_field_widget.place(relx=COLUMN_1, rely=ROW_STEP3+0.15, anchor=tk.W)
+        
+        # Save Output Image
+        self.save_image_widget = tk.Button(root, text='Save Image', command=self.save_image,
+        bg='white',fg='black',font=main_font,height=1,width=25)
+        self.save_image_widget.pack()
+        self.save_image_widget.place(relx=COLUMN_1, rely=ROW_STEP3+0.20, anchor=tk.W)
+        
+        # Save Output as CSV
+        self.save_csv_widget = tk.Button(root, text='Save Output as .CSV', command=self.save_csv,
+        bg='white',fg='black',font=main_font,height=1,width=25)
+        self.save_csv_widget.pack()
+        self.save_csv_widget.place(relx=COLUMN_2, rely=ROW_STEP3+0.20, anchor=tk.W)
+        
+        # Save Output as NPY
+        self.save_npy_widget = tk.Button(root, text='Save Output as .NPY', command=self.save_npy,
+        bg='white',fg='black',font=main_font,height=1,width=25)
+        self.save_npy_widget.pack()
+        self.save_npy_widget.place(relx=COLUMN_3, rely=ROW_STEP3+0.20, anchor=tk.W)
+
+      
 root = tk.Tk()
-root.geometry("1600x1600")
+root.wm_title("Digital Image Correlation GUI")
+root.geometry("1000x800")
 
-# bg = tk.PhotoImage(file = "chickpea.png") 
-# bg_label = tk.Label( root, image = bg) 
-# bg_label.place(x = 0,y = 0) 
+main_font = tkFont.Font(family="monospace",size=10,weight="bold")
+header_font = tkFont.Font(family="monospace",size=12,weight="bold")
+
+#bg = tk.PhotoImage(file = "bkg.png") 
+#bg_label = tk.Label(root, image = bg) 
+#bg_label.place(x = 0,y = 0) 
 
 root.configure(background='grey')
 
-app = SampleApp()#master=root)
+app = Application(master=root)
 
-
-if __name__ == "__main__":
-    app = SampleApp()
-    app.mainloop()
-
-
-# class Application(tk.Frame):
-#     def __init__(self, master=None):
-#         super().__init__(master)
-#         #self.mCan = tk.Canvas(self, height=1000, width=1000, bg='white')
-#         #self.mCan.pack()
-#         self.filename = None
-#         self.foldername = None
-#         self.master = master
-#         self.pack()
-#         self.create_widgets()
-
-#     def upload(self,event=None):
-#         self.filename = filedialog.askopenfilename()
-#         if self.filename.endswith('.mp4'):
-#             print('File Selected: ', self.filename)
-#         else:
-#             print('ERROR: Please upload an MP4 file.')
-#             self.filename = ""
-
-#     def choose_dir(self):
-#         self.foldername = filedialog.askdirectory()
-#         print('Directory Selected: ', self.foldername)
-
-#     def create_widgets(self):
-
-#         self.upload_widget = tk.Button(root, text='Upload Video File', command=self.upload,
-#         bg='white',fg='black',font=mono24,height=5,width=25)
-#         self.upload_widget.pack()
-#         self.upload_widget.place(relx=0.5, rely=0.2, anchor=tk.CENTER)
-
-#         self.choose_dir_widget = tk.Button(root, text='Choose Output Directory', command=self.choose_dir,
-#         bg='white',fg='black',font=mono24,height=5,width=25)
-#         self.choose_dir_widget.pack()
-#         self.choose_dir_widget.place(relx=0.5, rely=0.5, anchor=tk.CENTER)
-
-#         self.video_to_images_widget = tk.Button(root, text='Get Image Stack', command=self.video_to_images,
-#         bg='white',fg='black',font=mono24,height=5,width=25)
-#         self.video_to_images_widget.pack()
-#         self.video_to_images_widget.place(relx=0.5, rely=0.8, anchor=tk.CENTER)
-
-#         self.quit = tk.Button(self, text="QUIT", fg="red",
-#                               command=self.master.destroy)
-#         #self.quit.pack(side="bottom")
-        
-#     def video_to_images(self):
-#         if (self.filename is not None) and (self.foldername is not None):
-#             get_frames.mp4_frames(self.filename,self.foldername)
-#         else:
-#             print('Please choose filename and output directory')
-
-
-# root = tk.Tk()
-# root.geometry("1600x1600")
-
-# bg = tk.PhotoImage(file = "chickpea.png") 
-# bg_label = tk.Label( root, image = bg) 
-# bg_label.place(x = 0,y = 0) 
-
-# root.configure(background='grey')
-
-# app = Application(master=root)
-
-# root.mainloop()
-# app.mainloop()
+root.mainloop()
+app.mainloop()
