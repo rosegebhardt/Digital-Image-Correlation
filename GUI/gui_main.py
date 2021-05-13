@@ -1,10 +1,12 @@
 import tkinter as tk
 from tkinter import filedialog
 import tkinter.font as tkFont
+from PIL import Image, ImageTk
 import matplotlib.pyplot as plt
 from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
 
 import get_frames
+import dic_main
 
 COLUMN_1 = 0.05
 COLUMN_2 = 0.30
@@ -13,23 +15,36 @@ COLUMN_4 = 0.80
 
 TOP_OFFSET = 0.06
 ROW_STEP1 = TOP_OFFSET+0.075
-ROW_STEP2 = TOP_OFFSET+0.25
-ROW_STEP3 = TOP_OFFSET+0.575
+ROW_STEP2 = TOP_OFFSET+0.275
+ROW_STEP3 = TOP_OFFSET+0.625
 
 class Application(tk.Frame):
     
     def __init__(self, master=None):
         super().__init__(master)
-        #self.mCan = tk.Canvas(self, height=1000, width=1000, bg='white')
-        #self.mCan.pack()
         self.filename = None
         self.foldername = None
+        self.components = (1,1)
         self.master = master
         self.pack()
         self.upload_files()
         self.choose_settings()
         self.view_results()
-        
+        # # Can be used for making resizable background image - looks awful
+        # self.bg_img = Image.open("dic-speckle.png")
+        # self.bg_img_copy = self.bg_img.copy()
+        # self.background_image = ImageTk.PhotoImage(self.bg_img)
+        # self.background = tk.Label(self, image=self.background_image)
+        # self.background.pack(fill=tk.BOTH, expand=True)
+        # self.background.bind('<Configure>', self._resize_image)
+
+    # def _resize_image(self,event):
+    #     new_width = event.width
+    #     new_height = event.height
+    #     self.bg_img = self.bg_img_copy.resize((new_width, new_height))
+    #     self.background_image = ImageTk.PhotoImage(self.bg_img)
+    #     self.background.configure(image =  self.background_image)
+
     def error_popup(self,error_msg):
         win = tk.Toplevel()
         win.wm_title("Error Warning")
@@ -49,6 +64,10 @@ class Application(tk.Frame):
     def choose_dir(self):
         self.foldername = filedialog.askdirectory()
         print('Directory Selected: ', self.foldername)
+
+    def choose_stack_dir(self):
+        self.foldername = filedialog.askdirectory()
+        print('Image Stack Directory Selected: ', self.foldername)
         
     def video_to_images(self):
         if (self.filename is not None) and (self.foldername is not None):
@@ -56,27 +75,45 @@ class Application(tk.Frame):
         else:
             self.error_popup('ERROR: Please choose a video file and output directory.')
      
-    ## MAKE THESE ACTUAL FUNCTIONS FOR GODS SAKE
     def runDIC(self):
-        print('Running Digital Image Correlation')
-        
+        if self.foldername == None:
+            self.error_popup("ERROR: Please choose an image stack.")
+            return
+        else:
+            self.image_stack, self.dic_results = dic_main.run_DIC(self.foldername,
+            self.nth_image.get(),
+            self.filter.get(),
+            self.sigma.get(),
+            self.maxim.get(),
+            self.maxit.get(),
+            self.padding.get(),
+            self.interp.get(),
+            self.converge.get())
+ 
     def display_field(self):
-        print('Displaying Field')
-        
-    def save_image(self):
-        print('Saving Image')
+        try: self.image_stack
+        except AttributeError: self.error_popup("ERROR: Please run DIC before displaying results.")
+        else: dic_main.show_fields(self.image_stack,self.dic_results,self.which_field.get(),self.upscale.get(),self.components)
 
     def save_csv(self):
-        print('Saving Output as CSV')
-        
+        try: self.dic_results
+        except AttributeError: self.error_popup("ERROR: Please run DIC before saving results.")
+        else: 
+            self.csvfoldername = filedialog.askdirectory()
+            dic_main.save_csv(self.dic_results,self.which_field.get(),self.upscale.get(),self.components,self.csvfoldername)
+
     def save_npy(self):
-        print('Saving Output as NPY')
+        try: self.dic_results
+        except AttributeError: self.error_popup("ERROR: Please run DIC before saving results.")
+        else:
+            self.npyfoldername = filedialog.askdirectory()
+            dic_main.save_npy(self.dic_results,self.which_field.get(),self.upscale.get(),self.components,self.npyfoldername)
         
     #----------WIDGETS
     
     def upload_files(self):
         
-        self.upload_label = tk.Label(root,text='Step 1: Upload Files and Choose Directory',font=header_font)
+        self.upload_label = tk.Label(root,text='Step 1a: Upload Files and Choose Directory',font=header_font)
         self.upload_label.pack()
         self.upload_label.place(relx=COLUMN_1, rely=ROW_STEP1, anchor=tk.W)
 
@@ -94,6 +131,16 @@ class Application(tk.Frame):
         bg='white',fg='black',font=main_font,height=1,width=20)
         self.video_to_images_widget.pack()
         self.video_to_images_widget.place(relx=COLUMN_1, rely=ROW_STEP1+0.10, anchor=tk.W)
+        
+        self.imagestack_label = tk.Label(root,text='Step 1b: Choose Image Stack Directory',font=header_font)
+        self.imagestack_label.pack()
+        self.imagestack_label.place(relx=COLUMN_3, rely=ROW_STEP1, anchor=tk.W)
+
+        self.upload_widget = tk.Button(root, text='Choose Image Stack Directory', command=self.choose_stack_dir,
+        bg='white',fg='black',font=main_font,height=1,width=25)
+        self.upload_widget.pack()
+        self.upload_widget.place(relx=COLUMN_3, rely=ROW_STEP1+0.05, anchor=tk.W)
+
 
     def choose_settings(self):
         
@@ -127,7 +174,6 @@ class Application(tk.Frame):
         self.sigma_entry.place(relx=COLUMN_2, rely=ROW_STEP2+0.10, anchor=tk.W)
 
         # Choose every nth image
-        # deal with errors - round to nearest integer, make positive
         self.nth_image = tk.StringVar(root)
         self.nth_image.set("10")
         self.nth_image_label = tk.Label(root,text='Use Every Nth Image:',font=main_font)
@@ -220,9 +266,9 @@ class Application(tk.Frame):
         self.field_label = tk.Label(root,text='Choose Field:',font=main_font)
         self.field_label.pack()
         self.field_label.place(relx=COLUMN_1, rely=ROW_STEP3+0.10, anchor=tk.W)
-        self.field = tk.StringVar(root)
-        self.field.set(FIELDS[0]) # default value
-        self.field = tk.OptionMenu(root,self.field,*FIELDS)
+        self.which_field = tk.StringVar(root)
+        self.which_field.set(FIELDS[0]) # default value
+        self.field = tk.OptionMenu(root,self.which_field,*FIELDS)
         self.field.config(font=main_font)
         self.field.pack()
         self.field.place(relx=COLUMN_2, rely=ROW_STEP3+0.10, anchor=tk.W)
@@ -231,39 +277,29 @@ class Application(tk.Frame):
         self.disp_field_widget = tk.Button(root, text='Display Field', command=self.display_field,
         bg='white',fg='black',font=main_font,height=1,width=25)
         self.disp_field_widget.pack()
-        self.disp_field_widget.place(relx=COLUMN_1, rely=ROW_STEP3+0.15, anchor=tk.W)
-        
-        # Save Output Image
-        self.save_image_widget = tk.Button(root, text='Save Image', command=self.save_image,
-        bg='white',fg='black',font=main_font,height=1,width=25)
-        self.save_image_widget.pack()
-        self.save_image_widget.place(relx=COLUMN_1, rely=ROW_STEP3+0.20, anchor=tk.W)
+        self.disp_field_widget.place(relx=COLUMN_1, rely=ROW_STEP3+0.16, anchor=tk.W)
         
         # Save Output as CSV
         self.save_csv_widget = tk.Button(root, text='Save Output as .CSV', command=self.save_csv,
         bg='white',fg='black',font=main_font,height=1,width=25)
         self.save_csv_widget.pack()
-        self.save_csv_widget.place(relx=COLUMN_2, rely=ROW_STEP3+0.20, anchor=tk.W)
+        self.save_csv_widget.place(relx=COLUMN_2, rely=ROW_STEP3+0.16, anchor=tk.W)
         
         # Save Output as NPY
         self.save_npy_widget = tk.Button(root, text='Save Output as .NPY', command=self.save_npy,
         bg='white',fg='black',font=main_font,height=1,width=25)
         self.save_npy_widget.pack()
-        self.save_npy_widget.place(relx=COLUMN_3, rely=ROW_STEP3+0.20, anchor=tk.W)
+        self.save_npy_widget.place(relx=COLUMN_3, rely=ROW_STEP3+0.16, anchor=tk.W)
 
       
 root = tk.Tk()
 root.wm_title("Digital Image Correlation GUI")
-root.geometry("1000x800")
+root.geometry("2000x1200")
 
-main_font = tkFont.Font(family="monospace",size=10,weight="bold")
-header_font = tkFont.Font(family="monospace",size=12,weight="bold")
+main_font = tkFont.Font(family="Helvetica",size=10,weight="bold")
+header_font = tkFont.Font(family="Helvetica",size=12,weight="bold")
 
-#bg = tk.PhotoImage(file = "bkg.png") 
-#bg_label = tk.Label(root, image = bg) 
-#bg_label.place(x = 0,y = 0) 
-
-root.configure(background='grey')
+# root.configure(background='grey')
 
 app = Application(master=root)
 
