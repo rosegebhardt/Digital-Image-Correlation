@@ -2,4 +2,4 @@
 
 Repository for digital image correlation project as part of mechanical engineering senior design
 
-Link to the most updated design ideas and plans can be found here: https://www.overleaf.com/read/ymcnhnbjynwt
+Link to write-up can be found here: https://www.overleaf.com/read/rphwrsqyzhhk
