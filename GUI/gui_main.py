@@ -24,7 +24,7 @@ class Application(tk.Frame):
         super().__init__(master)
         self.filename = None
         self.foldername = None
-        self.components = (1,1)
+        # self.components = (1,1)
         self.master = master
         self.pack()
         self.upload_files()
@@ -74,6 +74,20 @@ class Application(tk.Frame):
             get_frames.mp4_frames(self.filename,self.foldername)
         else:
             self.error_popup('ERROR: Please choose a video file and output directory.')
+
+    def get_comp(self):
+        COMP = self.which_comp.get()
+        print(COMP)
+        if COMP == "XX":
+            return (0,0)
+        elif COMP == "XY":
+            return (0,1)
+        elif COMP == "YX":
+            return (1,0)
+        elif COMP == "YY":
+            return (1,1)
+        else:
+            error_popup("uh oh spaghettios...")
      
     def runDIC(self):
         if self.foldername == None:
@@ -91,11 +105,13 @@ class Application(tk.Frame):
             self.converge.get())
  
     def display_field(self):
+        self.components = self.get_comp()
         try: self.image_stack
         except AttributeError: self.error_popup("ERROR: Please run DIC before displaying results.")
         else: dic_main.show_fields(self.image_stack,self.dic_results,self.which_field.get(),self.upscale.get(),self.components)
 
     def save_csv(self):
+        self.get_comp
         try: self.dic_results
         except AttributeError: self.error_popup("ERROR: Please run DIC before saving results.")
         else: 
@@ -103,6 +119,7 @@ class Application(tk.Frame):
             dic_main.save_csv(self.dic_results,self.which_field.get(),self.upscale.get(),self.components,self.csvfoldername)
 
     def save_npy(self):
+        sel.get_comp
         try: self.dic_results
         except AttributeError: self.error_popup("ERROR: Please run DIC before saving results.")
         else:
@@ -255,23 +272,35 @@ class Application(tk.Frame):
         self.upscale.set("10")
         self.upscale_label = tk.Label(root,text='Upscale:',font=main_font)
         self.upscale_label.pack()
-        self.upscale_label.place(relx=COLUMN_1, rely=ROW_STEP3+0.05, anchor=tk.W)
+        self.upscale_label.place(relx=COLUMN_3, rely=ROW_STEP3+0.05, anchor=tk.W)
         self.upscale_entry = tk.Entry(root,textvariable=self.upscale,font=main_font)
         self.upscale_entry.pack()
-        self.upscale_entry.place(relx=COLUMN_2, rely=ROW_STEP3+0.05, anchor=tk.W)
+        self.upscale_entry.place(relx=COLUMN_4, rely=ROW_STEP3+0.05, anchor=tk.W)
         
         # Choose filtering method
         FIELDS = ["Displacement","True Strain","Engineering Strain",
                   "Green Strain","Residual"]
         self.field_label = tk.Label(root,text='Choose Field:',font=main_font)
         self.field_label.pack()
-        self.field_label.place(relx=COLUMN_1, rely=ROW_STEP3+0.10, anchor=tk.W)
+        self.field_label.place(relx=COLUMN_1, rely=ROW_STEP3+0.05, anchor=tk.W)
         self.which_field = tk.StringVar(root)
         self.which_field.set(FIELDS[0]) # default value
         self.field = tk.OptionMenu(root,self.which_field,*FIELDS)
         self.field.config(font=main_font)
         self.field.pack()
-        self.field.place(relx=COLUMN_2, rely=ROW_STEP3+0.10, anchor=tk.W)
+        self.field.place(relx=COLUMN_2, rely=ROW_STEP3+0.05, anchor=tk.W)
+
+        # Choose component to display
+        COMPONENTS = ["XX","XY","YX","YY"]
+        self.comp_label = tk.Label(root,text='Choose Field:',font=main_font)
+        self.comp_label.pack()
+        self.comp_label.place(relx=COLUMN_1, rely=ROW_STEP3+0.10, anchor=tk.W)
+        self.which_comp = tk.StringVar(root)
+        self.which_comp.set(COMPONENTS[3]) # default value
+        self.comp = tk.OptionMenu(root,self.which_comp,*COMPONENTS)
+        self.comp.config(font=main_font)
+        self.comp.pack()
+        self.comp.place(relx=COLUMN_2, rely=ROW_STEP3+0.10, anchor=tk.W)
                
         # View Fields
         self.disp_field_widget = tk.Button(root, text='Display Field', command=self.display_field,
